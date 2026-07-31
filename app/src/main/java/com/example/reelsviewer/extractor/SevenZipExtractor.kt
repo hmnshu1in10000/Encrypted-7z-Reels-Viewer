@@ -13,16 +13,17 @@ import java.util.Locale
 /**
  * 7z Decryption Worker wrapping SevenZipJBinding native extraction.
  * Handles AES-256 header and stream decryption with password callback.
+ * Supports optional/empty passwords for unencrypted archives.
  */
 class SevenZipExtractor(
     private val archivePath: String,
-    private val password: String
+    private val password: String? = null
 ) {
 
-    private class ArchivePasswordCallback(private val password: String) : IArchiveOpenCallback, ICryptoGetTextPassword {
+    private class ArchivePasswordCallback(private val password: String?) : IArchiveOpenCallback, ICryptoGetTextPassword {
         override fun setTotal(files: Long?, bytes: Long?) {}
         override fun setCompleted(files: Long?, bytes: Long?) {}
-        override fun cryptoGetTextPassword(): String = password
+        override fun cryptoGetTextPassword(): String = password ?: ""
     }
 
     fun initSevenZip(context: Context) {
@@ -36,7 +37,7 @@ class SevenZipExtractor(
     /**
      * Open archive helper passing null for auto-detection of format (.7z, .zip, etc.)
      */
-    fun openArchive(filePath: String, password: String): IInArchive? {
+    fun openArchive(filePath: String, password: String? = null): IInArchive? {
         return try {
             val file = File(filePath)
             if (!file.exists() || !file.canRead()) {
@@ -80,7 +81,6 @@ class SevenZipExtractor(
 
     /**
      * Scan the central directory header to get all MP4/MKV/MOV/WEBM video entries.
-     * Passes null as first parameter to openInArchive to allow auto-detection of format.
      */
     fun scanVideoItems(): List<VideoItem> {
         val videoItems = mutableListOf<VideoItem>()
@@ -93,7 +93,6 @@ class SevenZipExtractor(
 
         var inArchive: IInArchive? = null
         try {
-            // Pass null for auto-detection to prevent header-parsing errors on encrypted 7z containers
             inArchive = SevenZip.openInArchive(null, inStream, callback)
             if (inArchive != null) {
                 val itemCount = inArchive.numberOfItems
@@ -163,7 +162,7 @@ class SevenZipExtractor(
                 val fos = FileOutputStream(outputFile)
 
                 val extractCallback = object : IArchiveExtractCallback, ICryptoGetTextPassword {
-                    override fun cryptoGetTextPassword(): String = password
+                    override fun cryptoGetTextPassword(): String = password ?: ""
 
                     override fun getStream(index: Int, extractAskMode: ExtractAskMode): ISequentialOutStream? {
                         if (index != archiveIndex || extractAskMode != ExtractAskMode.EXTRACT) return null

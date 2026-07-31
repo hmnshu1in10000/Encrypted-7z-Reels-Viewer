@@ -62,15 +62,10 @@ class PasswordDialogFragment : DialogFragment() {
 
         binding.btnUnlock.setOnClickListener {
             val pathInput = binding.editArchivePath.text?.toString()?.trim()
-            val password = binding.editPassword.text?.toString()
+            val passwordInput = binding.editPassword.text?.toString() ?: ""
 
             if (pathInput.isNullOrEmpty()) {
                 Toast.makeText(requireContext(), "Please select a valid .7z archive file", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-
-            if (password.isNullOrEmpty()) {
-                Toast.makeText(requireContext(), "Password cannot be empty", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
@@ -91,7 +86,7 @@ class PasswordDialogFragment : DialogFragment() {
             }
 
             SessionManager.archiveFilePath = resolvedFile.absolutePath
-            SessionManager.rawPassword = password.toCharArray()
+            SessionManager.rawPassword = passwordInput.toCharArray()
             SessionManager.isAuthenticated = true
 
             dismiss()

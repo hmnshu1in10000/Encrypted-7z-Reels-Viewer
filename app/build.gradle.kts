@@ -74,8 +74,10 @@ dependencies {
     implementation("net.zetetic:android-database-sqlcipher:4.5.4")
     implementation("androidx.sqlite:sqlite-ktx:2.4.0")
 
-    // 7z Decryption (SevenZipJBinding Android)
+    // 7z Decryption (SevenZipJBinding Android & All Platforms)
     implementation("com.github.omicronapps:7-Zip-JBinding-4Android:Release-16.02-2.03")
+    implementation("net.sf.sevenzipjbinding:sevenzipjbinding:16.02-2.01")
+    implementation("net.sf.sevenzipjbinding:sevenzipjbinding-all-platforms:16.02-2.01")
 
     // Unit Testing
     testImplementation("junit:junit:4.13.2")

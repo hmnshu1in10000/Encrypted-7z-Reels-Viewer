@@ -12,13 +12,17 @@ import java.util.Locale
 
 /**
  * 7z Decryption Worker wrapping SevenZipJBinding native extraction.
- * Handles AES-256 header and stream decryption with password callback.
- * Supports optional/empty passwords for unencrypted archives.
+ * Explicitly initializes native platform bindings to prevent codec missing errors.
  */
 class SevenZipExtractor(
     private val archivePath: String,
-    private val password: String? = null
+    private val password: String? = null,
+    context: Context? = null
 ) {
+
+    init {
+        context?.let { initSevenZip(it) }
+    }
 
     private class ArchivePasswordCallback(private val password: String?) : IArchiveOpenCallback, ICryptoGetTextPassword {
         override fun setTotal(files: Long?, bytes: Long?) {}
@@ -28,14 +32,17 @@ class SevenZipExtractor(
 
     fun initSevenZip(context: Context) {
         try {
-            SevenZip.initSevenZipFromPlatformJAR()
+            SevenZip.initSevenZipFromPlatform()
         } catch (e: Exception) {
-            // Ignore if native libraries are pre-initialized
+            try {
+                SevenZip.initSevenZipFromPlatformJAR()
+            } catch (ignored: Exception) {
+            }
         }
     }
 
     /**
-     * Open archive helper passing null for auto-detection of format (.7z, .zip, etc.)
+     * Open archive helper with fallback format auto-detection.
      */
     fun openArchive(filePath: String, password: String? = null): IInArchive? {
         return try {
@@ -46,7 +53,11 @@ class SevenZipExtractor(
             val randomAccessFile = RandomAccessFile(file, "r")
             val inStream: IInStream = RandomAccessFileInStream(randomAccessFile)
             val callback = ArchivePasswordCallback(password)
-            SevenZip.openInArchive(null, inStream, callback)
+            try {
+                SevenZip.openInArchive(ArchiveFormat.SEVEN_ZIP, inStream, callback)
+            } catch (e: Exception) {
+                SevenZip.openInArchive(null, inStream, callback)
+            }
         } catch (e: Exception) {
             e.printStackTrace()
             null
@@ -87,13 +98,21 @@ class SevenZipExtractor(
         val file = File(archivePath)
         if (!file.exists() || !file.canRead()) return videoItems
 
-        val randomAccessFile = RandomAccessFile(file, "r")
-        val inStream: IInStream = RandomAccessFileInStream(randomAccessFile)
-        val callback = ArchivePasswordCallback(password)
-
+        var randomAccessFile: RandomAccessFile? = null
+        var inStream: IInStream? = null
         var inArchive: IInArchive? = null
+
         try {
-            inArchive = SevenZip.openInArchive(null, inStream, callback)
+            randomAccessFile = RandomAccessFile(file, "r")
+            inStream = RandomAccessFileInStream(randomAccessFile)
+            val callback = ArchivePasswordCallback(password)
+
+            try {
+                inArchive = SevenZip.openInArchive(ArchiveFormat.SEVEN_ZIP, inStream, callback)
+            } catch (e: Exception) {
+                inArchive = SevenZip.openInArchive(null, inStream, callback)
+            }
+
             if (inArchive != null) {
                 val itemCount = inArchive.numberOfItems
                 val videoExtensions = setOf("mp4", "mkv", "mov", "webm", "avi", "3gp")
@@ -129,13 +148,9 @@ class SevenZipExtractor(
         } finally {
             try {
                 inArchive?.close()
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-            try {
-                randomAccessFile.close()
-            } catch (e: Exception) {
-                e.printStackTrace()
+                inStream?.close()
+                randomAccessFile?.close()
+            } catch (ignored: Exception) {
             }
         }
 
@@ -149,14 +164,22 @@ class SevenZipExtractor(
         val file = File(archivePath)
         if (!file.exists() || !file.canRead()) return false
 
-        val randomAccessFile = RandomAccessFile(file, "r")
-        val inStream: IInStream = RandomAccessFileInStream(randomAccessFile)
+        var randomAccessFile: RandomAccessFile? = null
+        var inStream: IInStream? = null
+        var inArchive: IInArchive? = null
         var success = false
         val openCallback = ArchivePasswordCallback(password)
 
-        var inArchive: IInArchive? = null
         try {
-            inArchive = SevenZip.openInArchive(null, inStream, openCallback)
+            randomAccessFile = RandomAccessFile(file, "r")
+            inStream = RandomAccessFileInStream(randomAccessFile)
+
+            try {
+                inArchive = SevenZip.openInArchive(ArchiveFormat.SEVEN_ZIP, inStream, openCallback)
+            } catch (e: Exception) {
+                inArchive = SevenZip.openInArchive(null, inStream, openCallback)
+            }
+
             if (inArchive != null) {
                 outputFile.parentFile?.mkdirs()
                 val fos = FileOutputStream(outputFile)
@@ -193,13 +216,9 @@ class SevenZipExtractor(
         } finally {
             try {
                 inArchive?.close()
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-            try {
-                randomAccessFile.close()
-            } catch (e: Exception) {
-                e.printStackTrace()
+                inStream?.close()
+                randomAccessFile?.close()
+            } catch (ignored: Exception) {
             }
         }
 

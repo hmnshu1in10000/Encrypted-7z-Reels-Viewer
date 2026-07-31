@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">7z Reels Viewer</string>
+    <string name="enter_password">Enter Archive Password</string>
+    <string name="archive_path">7z Archive Path</string>
+    <string name="select_archive">Select .7z File</string>
+    <string name="unlock">Unlock Archive</string>
+    <string name="password_hint">Password (AES-256)</string>
+    <string name="liked_reels">Liked Reels</string>
+    <string name="no_liked_reels">No liked reels yet</string>
+    <string name="share">Share</string>
+    <string name="like">Like</string>
+    <string name="decrypting">Decrypting stream...</string>
+    <string name="error_password">Incorrect password or corrupted 7z container</string>
+</resources>

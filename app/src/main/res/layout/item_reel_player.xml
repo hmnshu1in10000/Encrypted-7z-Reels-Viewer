@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/containerReel"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/black">
+
+    <!-- Media3 ExoPlayer Surface -->
+    <androidx.media3.ui.PlayerView
+        android:id="@+id/playerView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:use_controller="false"
+        app:resize_mode="fill" />
+
+    <!-- Transparent Touch Overlay for Single & Double Tap gestures -->
+    <View
+        android:id="@+id/touchOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clickable="true"
+        android:focusable="true" />
+
+    <!-- Decryption / Loading Indicator -->
+    <LinearLayout
+        android:id="@+id/layoutLoading"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:visibility="gone">
+
+        <ProgressBar
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:indeterminateTint="@color/accent_pink" />
+
+        <TextView
+            android:id="@+id/textLoadingStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/decrypting"
+            android:textColor="@color/white"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+    <!-- Animated Pop-up Heart (Double Tap) -->
+    <ImageView
+        android:id="@+id/imageAnimatedHeart"
+        android:layout_width="120dp"
+        android:layout_height="120dp"
+        android:layout_gravity="center"
+        android:src="@drawable/ic_heart_filled"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
+    <!-- Bottom Gradient Overlay for Metadata -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="220dp"
+        android:layout_gravity="bottom"
+        android:background="@drawable/bottom_gradient_overlay" />
+
+    <!-- Metadata Panel (Title & Subtitle) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:orientation="vertical"
+        android:padding="20dp"
+        android:paddingEnd="80dp"
+        tools:ignore="RtlSymmetry">
+
+        <TextView
+            android:id="@+id/textVideoTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/white"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            tools:text="sample_reel_video.mp4" />
+
+        <TextView
+            android:id="@+id/textVideoDetails"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textColor="@color/gray_text"
+            android:textSize="12sp"
+            tools:text="AES-256 Encrypted | 14.2 MB" />
+    </LinearLayout>
+
+    <!-- Right Side Vertical Action Bar -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginBottom="40dp"
+        android:layout_marginEnd="16dp"
+        android:orientation="vertical"
+        android:gravity="center">
+
+        <!-- Like Button -->
+        <ImageButton
+            android:id="@+id/btnLike"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_heart"
+            android:contentDescription="@string/like" />
+
+        <TextView
+            android:id="@+id/textLikeCount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:text="Like"
+            android:textColor="@color/white"
+            android:textSize="12sp" />
+
+        <!-- Share Button -->
+        <ImageButton
+            android:id="@+id/btnShare"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_share"
+            android:contentDescription="@string/share" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:text="Share"
+            android:textColor="@color/white"
+            android:textSize="12sp" />
+
+        <!-- Liked Reels Grid Toggle -->
+        <ImageButton
+            android:id="@+id/btnLikedList"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_list"
+            android:contentDescription="@string/liked_reels" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Saved"
+            android:textColor="@color/white"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+</FrameLayout>

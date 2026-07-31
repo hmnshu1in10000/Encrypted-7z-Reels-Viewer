@@ -1,6 +1,7 @@
 package com.example.reelsviewer.ui
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -19,6 +20,7 @@ class PasswordDialogFragment : DialogFragment() {
     private var _binding: DialogPasswordBinding? = null
     private val binding get() = _binding!!
 
+    private var selectedUri: Uri? = null
     var onUnlockListener: (() -> Unit)? = null
 
     private val filePickerLauncher = registerForActivityResult(
@@ -26,8 +28,9 @@ class PasswordDialogFragment : DialogFragment() {
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             result.data?.data?.let { uri ->
-                val path = resolveRealPath(uri)
-                binding.editArchivePath.setText(path)
+                selectedUri = uri
+                val pathDisplay = uri.path ?: uri.toString()
+                binding.editArchivePath.setText(pathDisplay)
             }
         }
     }
@@ -58,10 +61,10 @@ class PasswordDialogFragment : DialogFragment() {
         }
 
         binding.btnUnlock.setOnClickListener {
-            val path = binding.editArchivePath.text?.toString()?.trim()
+            val pathInput = binding.editArchivePath.text?.toString()?.trim()
             val password = binding.editPassword.text?.toString()
 
-            if (path.isNullOrEmpty() || !File(path).exists()) {
+            if (pathInput.isNullOrEmpty()) {
                 Toast.makeText(requireContext(), "Please select a valid .7z archive file", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
@@ -71,7 +74,23 @@ class PasswordDialogFragment : DialogFragment() {
                 return@setOnClickListener
             }
 
-            SessionManager.archiveFilePath = path
+            var resolvedFile: File? = null
+            val uri = selectedUri
+            if (uri != null) {
+                resolvedFile = getFileFromUri(requireContext(), uri)
+            } else {
+                val directFile = File(pathInput)
+                if (directFile.exists()) {
+                    resolvedFile = directFile
+                }
+            }
+
+            if (resolvedFile == null || !resolvedFile.exists()) {
+                Toast.makeText(requireContext(), "Could not access or copy selected archive file", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            SessionManager.archiveFilePath = resolvedFile.absolutePath
             SessionManager.rawPassword = password.toCharArray()
             SessionManager.isAuthenticated = true
 
@@ -80,8 +99,18 @@ class PasswordDialogFragment : DialogFragment() {
         }
     }
 
-    private fun resolveRealPath(uri: Uri): String {
-        return uri.path ?: uri.toString()
+    private fun getFileFromUri(context: Context, uri: Uri): File? {
+        return try {
+            val inputStream = context.contentResolver.openInputStream(uri) ?: return null
+            val tempFile = File(context.cacheDir, "input_archive.7z")
+            tempFile.outputStream().use { output ->
+                inputStream.copyTo(output)
+            }
+            tempFile
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
     }
 
     override fun onDestroyView() {

@@ -34,17 +34,67 @@ class SevenZipExtractor(
     }
 
     /**
+     * Open archive helper passing null for auto-detection of format (.7z, .zip, etc.)
+     */
+    fun openArchive(filePath: String, password: String): IInArchive? {
+        return try {
+            val file = File(filePath)
+            if (!file.exists() || !file.canRead()) {
+                return null
+            }
+            val randomAccessFile = RandomAccessFile(file, "r")
+            val inStream: IInStream = RandomAccessFileInStream(randomAccessFile)
+            val callback = ArchivePasswordCallback(password)
+            SevenZip.openInArchive(null, inStream, callback)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    fun getArchiveEntries(inArchive: IInArchive?): List<String> {
+        if (inArchive == null) return emptyList()
+        val fileList = mutableListOf<String>()
+        return try {
+            val count = inArchive.numberOfItems
+            for (i in 0 until count) {
+                val path = inArchive.getStringProperty(i, PropID.PATH)
+                if (path != null) {
+                    fileList.add(path.toString())
+                }
+            }
+            fileList
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList()
+        }
+    }
+
+    fun closeArchive(inArchive: IInArchive?) {
+        try {
+            inArchive?.close()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    /**
      * Scan the central directory header to get all MP4/MKV/MOV/WEBM video entries.
+     * Passes null as first parameter to openInArchive to allow auto-detection of format.
      */
     fun scanVideoItems(): List<VideoItem> {
-        val randomAccessFile = RandomAccessFile(archivePath, "r")
-        val inStream: IInStream = RandomAccessFileInStream(randomAccessFile)
         val videoItems = mutableListOf<VideoItem>()
+        val file = File(archivePath)
+        if (!file.exists() || !file.canRead()) return videoItems
+
+        val randomAccessFile = RandomAccessFile(file, "r")
+        val inStream: IInStream = RandomAccessFileInStream(randomAccessFile)
         val callback = ArchivePasswordCallback(password)
 
         var inArchive: IInArchive? = null
         try {
-            inArchive = SevenZip.openInArchive(ArchiveFormat.SEVEN_ZIP, inStream, callback)
+            // Pass null for auto-detection to prevent header-parsing errors on encrypted 7z containers
+            inArchive = SevenZip.openInArchive(null, inStream, callback)
             if (inArchive != null) {
                 val itemCount = inArchive.numberOfItems
                 val videoExtensions = setOf("mp4", "mkv", "mov", "webm", "avi", "3gp")
@@ -75,9 +125,19 @@ class SevenZipExtractor(
                     }
                 }
             }
+        } catch (e: Exception) {
+            e.printStackTrace()
         } finally {
-            inArchive?.close()
-            randomAccessFile.close()
+            try {
+                inArchive?.close()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            try {
+                randomAccessFile.close()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
 
         return videoItems
@@ -87,14 +147,17 @@ class SevenZipExtractor(
      * Decrypt and extract a specific entry by its central directory index to local temporary cache file.
      */
     fun extractVideoEntry(archiveIndex: Int, outputFile: File): Boolean {
-        val randomAccessFile = RandomAccessFile(archivePath, "r")
+        val file = File(archivePath)
+        if (!file.exists() || !file.canRead()) return false
+
+        val randomAccessFile = RandomAccessFile(file, "r")
         val inStream: IInStream = RandomAccessFileInStream(randomAccessFile)
         var success = false
         val openCallback = ArchivePasswordCallback(password)
 
         var inArchive: IInArchive? = null
         try {
-            inArchive = SevenZip.openInArchive(ArchiveFormat.SEVEN_ZIP, inStream, openCallback)
+            inArchive = SevenZip.openInArchive(null, inStream, openCallback)
             if (inArchive != null) {
                 outputFile.parentFile?.mkdirs()
                 val fos = FileOutputStream(outputFile)
@@ -129,8 +192,16 @@ class SevenZipExtractor(
             outputFile.delete()
             success = false
         } finally {
-            inArchive?.close()
-            randomAccessFile.close()
+            try {
+                inArchive?.close()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            try {
+                randomAccessFile.close()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
 
         return success
